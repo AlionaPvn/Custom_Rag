@@ -27,6 +27,17 @@ with st.sidebar:
             
 st.markdown("## Chat mit dem RAG")
 
+
+if st.button(label="Chat löschen"):
+    st.session_state.messages = [
+        {
+            "role": "assistant",
+            "content": "Chat zurückgesetzt!"
+        }
+    ]
+
+    st.success("Chat-Verlauf wurde gelöscht!")
+
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {
@@ -65,3 +76,5 @@ if user_input:
         "role": "assistant",
         "content": answer
     })
+    
+   
