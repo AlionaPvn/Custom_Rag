@@ -47,7 +47,7 @@ if "messages" not in st.session_state:
     ]
 
 for message in st.session_state.messages:
-    with st.chat_message(name="assistant"):
+    with st.chat_message(name=message["role"]):
         st.markdown(message["content"])
 
 user_input = st.chat_input("Was möchtest du wissen?")
