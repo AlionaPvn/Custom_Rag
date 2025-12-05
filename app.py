@@ -1,6 +1,7 @@
 import streamlit as st
 import rag_backend
 from PyPDF2 import PdfReader
+import pdf_utils
 
 st.title("RAG-System")
 
@@ -72,24 +73,16 @@ with st.sidebar:
         if st.button("Ingest starten"):
             try:
                 # PDF einlesen und Text extrahieren:
-                reader = PdfReader(uploaded_pdf)
-                full_text = ""
-                for page in reader.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        full_text += page_text + "\n"
-                
-                if not full_text.strip():
-                    st.error("Kein Text in der PDF gefunden!") 
-                else:
-                    num_chunks = rag_backend.ingest_document(
-                        raw_text=full_text,
-                        source=source_name
+                pdf_bytes = uploaded_pdf.read()
+                structured = pdf_utils.extract_text_with_ocr(pdf_bytes)
+                num_chunks = rag_backend.ingest_structured_document(
+                    structured_json=structured,
+                    source=source_name
                     )
-                    st.success(
-                        f"{num_chunks} Chunks aus PDF unter Quelle '{st.session_state['source_name']}'"
-                        "gespeichert."
-                    )
+                st.success(
+                    f"{num_chunks} Chunks aus PDF unter Quelle '{st.session_state['source_name']}'"
+                    "gespeichert."
+                )
                         
             except Exception as e:
                 st.error(f"Fehler beim Lesen der PDF: {e}")
