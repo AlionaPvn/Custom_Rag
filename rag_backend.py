@@ -158,7 +158,7 @@ def embed_query(query: str) -> List[float]:
     
     return resp.data[0].embedding
 
-def search_similar_chunks(query: str, k: int = 3):
+def search_similar_chunks(query: str, k: int = 10):
     """
     Sucht die k ähnlichsten Chunks in der Collection für eine
     gegebene Nutzerfrage (query).
@@ -217,7 +217,7 @@ def build_rag_prompt(question: str, results: List[tuple]) -> str:
     
     return prompt
 
-def answer_question_with_rag(question: str, k: int = 3) -> str:
+def answer_question_with_rag(question: str, k: int = 10) -> str:
     """
     Führt einen kompletten RAG-Druchlauf durch:
     - Ähnliche Chunks suchen
@@ -257,3 +257,47 @@ def answer_question_with_rag(question: str, k: int = 3) -> str:
     answer = chat_response.choices[0].message.content
     return answer
 
+def extract_chunks_from_structured_json(structured_json):
+    chunks = []
+
+    # 1. Jede Section als eigener Chunk
+    for page in structured_json.get("pages", []):
+        for sec in page.get("sections", []):
+            title = sec.get("title", "")
+            content = sec.get("content", "")
+            
+            if content:
+                # Optional: Titel als Teil des Chunks
+                chunk_text = f"{title}\n{content}" if title else content
+                chunks.append(chunk_text)
+
+    # 2. OPTIONAL: Key-Value-Pairs als Klartext
+    kv = structured_json.get("key_value_pairs", {})
+    for key, val in kv.items():
+        chunks.append(f"{key}: {val}")
+
+    return chunks
+
+def ingest_structured_document(structured_json, source: str) -> int:
+    chunks = extract_chunks_from_structured_json(structured_json)
+
+    if not chunks:
+        return 0
+
+    # Embeddings generieren
+    embeddings = embed_texts(chunks)
+
+    items = []
+    for idx, (chunk_text, emb) in enumerate(zip(chunks, embeddings)):
+        item_id = f"{source}_{idx}"
+        metadata = {
+            "source": source,
+            "chunk": idx,
+            "text": chunk_text
+        }
+        items.append((item_id, emb, metadata))
+
+    collection.upsert(items)
+    collection.create_index()
+
+    return len(items)
